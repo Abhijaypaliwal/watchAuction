@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {AuctionWatch} from "./watchAuction.sol";
+import {getEMI} from "./getEMI.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 /**
@@ -28,7 +29,7 @@ import {Test, console} from "forge-std/Test.sol";
  * @notice there is no role of admin here, the scope lies between borrower and investors
  * @notice the debt token equalts to wei, i.e. 1 debt token = 1 wei
  */
-
+interface 
 contract getInvestorProposal is ERC20, Test {
     uint256 public _remainingAmount;
 
@@ -63,6 +64,7 @@ contract getInvestorProposal is ERC20, Test {
     proposalDetails detailsProposer;
     uint256 public proposalNum;
     mapping(uint256 => proposalDetails) public proposalMapping;
+    proposalDetails[] public acceptedProposalArray;
 
     ////////////////////
     // Functions //
@@ -103,7 +105,7 @@ contract getInvestorProposal is ERC20, Test {
      */
 
     ////////////////////////////
-      // External Functions //
+    // External Functions //
     ////////////////////////////
 
     function getProposals(
@@ -144,14 +146,22 @@ contract getInvestorProposal is ERC20, Test {
         // );
         require(_proposalNum <= proposalNum, "proposal number does not exist");
         proposalMapping[_proposalNum].approved = true;
-
         _remainingAmount -= proposalMapping[_proposalNum].amount;
+        acceptedProposalArray.push(proposalMapping[_proposalNum]);
+
+        if (_remainingAmount == 0) {
+            mintEMIContract();
+        }
         return true;
     }
 
-    function mintEMIContract() internal returns(address) {
-
-     }
+    function mintEMIContract() internal returns (address) {
+        proposalDetails[] memory z;
+        z = acceptedProposalArray;
+        getEMI EMIContract = new getEMI();
+        EMIContract.hellow(z, address(this), details.borrower);
+        return address(EMIContract);
+    }
 
     /*
      * @param _proposalNum: proposalNum of investor who is claiming ETH
