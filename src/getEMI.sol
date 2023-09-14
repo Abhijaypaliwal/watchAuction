@@ -28,7 +28,7 @@ contract getEMI is Test {
     // uint principal;
     // uint interestRate;
     // uint time;
-     address borrower;
+    address borrower;
     // address[] investors;
     address debtTokenContract;
     uint EMILeft; // months of EMI to be paid
@@ -36,16 +36,16 @@ contract getEMI is Test {
     uint public constant thirtyDayEpoch = 2629743;
     uint public nextEpochToPay = 2629743 + block.timestamp;
 
-    constructor(
-        proposalDetails[] storage detailsProposal,
-        address _debtTokenAddress, 
-        address _borrower
-    ) {
-        proposalArray = detailsProposal;
-        debtTokenContract = _debtTokenAddress;
-        borrower = _borrower;
-        //console.log(proposalArray[1]);
-    }
+    // constructor(
+    //     proposalDetails[] storage detailsProposal,
+    //     address _debtTokenAddress,
+    //     address _borrower
+    // ) {
+    //     proposalArray = detailsProposal;
+    //     debtTokenContract = _debtTokenAddress;
+    //     borrower = _borrower;
+    //     //console.log(proposalArray[1]);
+    // }
 
     // constructor(
     //     uint _principal,
@@ -63,31 +63,45 @@ contract getEMI is Test {
     //     investors = _investors;
     //     EMILeft = _time;
     // }
-function hellow( proposalDetails[] memory detailsProposal,
-        address _debtTokenAddress, 
+    function hellow(
+        proposalDetails[] memory detailsProposal,
+        address _debtTokenAddress,
         address _borrower
     ) public {
-    {
-        proposalArray = detailsProposal;
-        debtTokenContract = _debtTokenAddress;
-        borrower = _borrower;
+        {
+            proposalArray = detailsProposal;
+            debtTokenContract = _debtTokenAddress;
+            borrower = _borrower;
+        }
     }
-}
+
     modifier onlyBorrower() {
         require(msg.sender == borrower, "only borrower can call this function");
         _;
     }
 
-    function returnEMI(uint principal, uint interestRate, uint time) internal returns (uint) {
+    function returnEMI(
+        uint principal,
+        uint interestRate,
+        uint time
+    ) internal returns (uint) {
         if (block.timestamp < nextEpochToPay) {
-            return  calcEMI(principal, interestRate, time);
+            return calcEMI(principal, interestRate, time);
         } else {
             uint daysElapsed = (block.timestamp - nextEpochToPay) / 86400;
-            return calcEMI(principal, interestRate, time) + ((daysElapsed * penalty) * calcEMI(principal, interestRate, time)) / 100;
+            return
+                calcEMI(principal, interestRate, time) +
+                ((daysElapsed * penalty) *
+                    calcEMI(principal, interestRate, time)) /
+                100;
         }
     }
 
-    function calcEMI(uint principal, uint interestRate, uint time) public view returns (uint) {
+    function calcEMI(
+        uint principal,
+        uint interestRate,
+        uint time
+    ) public view returns (uint) {
         //@dev note that time is in months and calculation is done via simple interest
         uint EMI = (principal + (principal * interestRate * time) / 1200) / 12;
         return EMI;

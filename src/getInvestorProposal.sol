@@ -29,7 +29,7 @@ import {Test, console} from "forge-std/Test.sol";
  * @notice there is no role of admin here, the scope lies between borrower and investors
  * @notice the debt token equalts to wei, i.e. 1 debt token = 1 wei
  */
-interface 
+ 
 contract getInvestorProposal is ERC20, Test {
     uint256 public _remainingAmount;
 
