@@ -5,6 +5,55 @@ import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 import {Test, console} from "forge-std/Test.sol";
 
+
+contract getEMI  {
+    uint principal;
+    uint interestRate;
+    uint time;
+    address borrower;
+    address[] investors;
+    address debtTokenContract;
+
+    constructor(
+        uint _principal,
+        uint _interestRate,
+        uint _time,
+        address _borrower,
+        address[]  memory _investors,
+        address _debtTokenContract 
+    ) {
+        principal = _principal;
+        interestRate = _interestRate * 1000;
+        time = _time;
+        borrower = _borrower;
+        _debtTokenContract = debtTokenContract; 
+       // investors = _investors;
+    }
+
+    modifier onlyBorrower() {
+        require(
+            msg.sender == borrower,
+            "only borrower can call this function"
+        );
+        _;
+    }
+
+    function calcEMI(uint principal, uint rate, uint timeinMos) public pure returns(uint) {
+        uint EMI = (principal + (principal * rate * timeinMos)/1200)/12 ;
+        return EMI;
+    }
+
+    function transferFunds() public payable returns(bool) {
+        // use output of calculateEMI
+        require(msg.value == calcEMI(principal, interestRate, time), "EMI AND MSG.VALUE DOES NOT MATCH");
+
+        for(uint i = 0; i <= investors.length ; i++) {
+            uint _tokenBal = getInvestorProposal(debtTokenContract).balanceOf(investors[i]);
+            (bool sent, ) = investors[i].call{value: _tokenBal}("");
+            require(sent, "Failed to send Ether");
+        }
+    }
+}
 contract getInvestorProposal is ERC20, Test {
     struct itemDetails {
         string itemName;
