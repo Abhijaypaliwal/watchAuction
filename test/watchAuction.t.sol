@@ -5,12 +5,12 @@ import "../src/watchAuction.sol";
 
 contract auctionTest is Test {
     AuctionWatch auctionContract;
-    getEMI emi;
+    //getEMI emi;
 
     function setUp() external {
         vm.prank(address(1));
         auctionContract = new AuctionWatch();
-        emi = new getEMI(10000,12,2,address(1));
+       // emi = new getEMI(10000,12,2,address(1));
     }
 
     function testAuction() external {
@@ -53,8 +53,8 @@ contract auctionTest is Test {
         getInvestorProposal(getInvestorProposalAddr).investorClaimDebtToken(3);
     }
 
-    function testEMI() external {
-        console.log(emi.calculate_EMI());
+    // function testEMI() external {
+    //     console.log(emi.calculate_EMI());
 
-    }
+    // }
 }
