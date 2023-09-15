@@ -5,6 +5,49 @@ pragma solidity ^0.8.16;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {Test, console} from "forge-std/Test.sol";
 
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#@@@@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#@@@@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#::
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&&&&&&&&&&&&@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&            @@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&  .B########@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@A@H@J@Y@@A@I@A@@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@B@I@A@@P@L@W@L@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@@&&&&&&&&&&&&@@@&  .@@@@@@@@@@@@#::~&&&&&&&&&
+// @@@@@@@@@@@@@@@&.           G@@&  .@@@@@@@@@@@@#:::
+// @@@@@@@@@@@@@@@&   PBBBBB.  G@@&  .@@@@@@@@@@@@#::~&&&&&&&&&
+// @@@@@@@@@@@@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// @@@@@@@@@@@@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// &&&&&&&&&&&&@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ....        P@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...P#####~  P@@&.  G#BBBB:  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...&@@@@@7  P@@&.           G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...&@@@@@7  P@@&.  B&&&&&:  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...&@@@@@7  P@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...&@@@@@7  P@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...J55555:  P@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ......   ...G@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...#@@B  ^@@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...&@@@^  #@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...&@@@P  !@@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#::!@@@@@@@@@
+// ...&@@@@:  &@@@&. .@@@@@@^  G@@&  .@@@@@@@@@@@@#:: @@@@@@@@@
+// ...&@@@@5  ?@@@&. .@@@@@@^  G@@&  .         @@@@
+// ...&@@@@&. .@@@&. .@@@@@@^  G@@&@@@@@@@@@#@@@@@@@@@@@@@@@@@@
 /**
  * @title getInvestorProposal
  * @author Abhijay Paliwal
@@ -32,7 +75,7 @@ interface watchAuction {
     function setAuctionOff(uint _itemNumber) external returns (bool);
 }
 
-contract getInvestorProposal is ERC20, Test {
+contract getInvestorProposal is ERC20, Test { 
     uint256 public _remainingAmount;
     uint EMIsPaid; // months of EMI borrower had paid
     uint penalty = 1; // penalty paid by borrower for late payment, in % per day
@@ -40,7 +83,7 @@ contract getInvestorProposal is ERC20, Test {
     uint public nextEpochToPay; // next timestamp to pay for borrower
     bool public setForEMI;
     uint256 public proposalNum;
-    address watchAuctionContract;
+    //address public watchAuctionContract;
     
     struct itemDetails {
         uint itemNumber;
@@ -52,6 +95,7 @@ contract getInvestorProposal is ERC20, Test {
         bool onAuction;
         address borrower;
         uint256 auctionDuration;
+        //address watchAuctionContract;
     }
 
     struct proposalDetails {
@@ -72,7 +116,7 @@ contract getInvestorProposal is ERC20, Test {
 
     itemDetails public details;
     proposalDetails detailsProposer;
-    watchAuction auctionContract = watchAuction(watchAuctionContract);
+    //watchAuction auctionContract = watchAuction(details.watchAuctionContract);
     mapping(uint256 => uint256) public EMIPaidTimestamps;
     mapping(uint256 => proposalDetails) public proposalMapping;
     proposalDetails[] public acceptedProposalArray;
@@ -91,6 +135,7 @@ contract getInvestorProposal is ERC20, Test {
         bool onAuction,
         address _borrower,
         uint256 _auctionDuration
+       // address _watchAuctionContract
     ) ERC20("WATCH_AUCTION_DEBT_TOKEN", "WATCH_DEBT") {
         details.itemNumber = _itemNumber;
         details.itemName = _itemName;
@@ -100,9 +145,11 @@ contract getInvestorProposal is ERC20, Test {
         details.onAuction = onAuction;
         details.borrower = _borrower;
         details.borrowDuration = _borrowDuration;
+        //details.watchAuctionContract = _watchAuctionContract;
         EMIsPaid = 0;
         _remainingAmount = details.askingPrice;
         details.auctionDuration = _auctionDuration;
+        //watchAuctionContract = _watchAuctionContract;
     }
 
     /*
@@ -150,19 +197,20 @@ contract getInvestorProposal is ERC20, Test {
     function approveProposal(
         uint256 _proposalNum
     ) external onlyBorrower returns (bool) {
-        // require(
-        //     _remainingAmount >= proposalMapping[_proposalNum].amount,
-        //     "remaining amount is less than proposal"
-        // );
+        require(
+            _remainingAmount >= proposalMapping[_proposalNum].amount,
+            "remaining amount is less than proposal"
+        );
         require(_proposalNum <= proposalNum, "proposal number does not exist");
         proposalMapping[_proposalNum].approved = true;
+        console.log("rem amt", _remainingAmount);
         _remainingAmount -= proposalMapping[_proposalNum].amount;
         acceptedProposalArray.push(proposalMapping[_proposalNum]);
-
+        
         if (_remainingAmount == 0) {
             nextEpochToPay = 2629743 + block.timestamp;
             setForEMI = true;
-            auctionContract.setAuctionOff(details.itemNumber);
+           // auctionContract.setAuctionOff(details.itemNumber);
         }
         return true;
     }

@@ -17,8 +17,8 @@ contract auctionTest is Test {
         vm.startPrank(address(1));
         address getInvestorProposalAddr = auctionContract.setItemForAuction(
             "Rolex Watch",
-            1000000000000000000,
-            1000000000000000000,
+            1500000000000000000,
+            1500000000000000000,
             12,
             true,
             address(1),
@@ -42,6 +42,11 @@ contract auctionTest is Test {
         getInvestorProposal(payable(getInvestorProposalAddr)).getProposals{
             value: 500000000000000000
         }(10);
+        vm.deal(address(4), 100 ether);
+        vm.prank(address(4));
+        getInvestorProposal(payable(getInvestorProposalAddr)).getProposals{
+            value: 500000000000000000
+        }(10);
 
         vm.warp(1694601479);
         vm.prank(address(1));
@@ -49,11 +54,15 @@ contract auctionTest is Test {
         vm.prank(address(1));
         getInvestorProposal(getInvestorProposalAddr).approveProposal(2);
         vm.prank(address(1));
+        getInvestorProposal(getInvestorProposalAddr).approveProposal(4);
+        vm.prank(address(1));
         getInvestorProposal(getInvestorProposalAddr).borrowerClaimFunds(3);
         vm.prank(address(2));
         getInvestorProposal(getInvestorProposalAddr).investorClaimDebtToken(2);
         vm.prank(address(3));
         getInvestorProposal(getInvestorProposalAddr).investorClaimDebtToken(3);
+        vm.prank(address(4));
+        getInvestorProposal(getInvestorProposalAddr).investorClaimDebtToken(4);
         vm.warp(1697231200);
         vm.startPrank(address(1));
         console.log(msg.sender.balance);
