@@ -37,7 +37,7 @@ contract getInvestorProposal is ERC20, Test {
     uint public constant thirtyDayEpoch = 2629743; //number of seconds in thirty days
     uint public nextEpochToPay; // next timestamp to pay for borrower
     bool public setForEMI;
-    
+    uint256 public proposalNum;
 
     struct itemDetails {
         string itemName;
@@ -68,7 +68,7 @@ contract getInvestorProposal is ERC20, Test {
 
     itemDetails public details;
     proposalDetails detailsProposer;
-    uint256 public proposalNum;
+    mapping(uint256 => uint256) public EMIPaidTimestamps;
     mapping(uint256 => proposalDetails) public proposalMapping;
     proposalDetails[] public acceptedProposalArray;
 
@@ -93,6 +93,7 @@ contract getInvestorProposal is ERC20, Test {
         details.onAuction = onAuction;
         details.borrower = _borrower;
         details.borrowDuration = _borrowDuration;
+        EMIsPaid = _borrowDuration;
         _remainingAmount = details.askingPrice;
         details.auctionDuration = _auctionDuration;
     }
@@ -115,9 +116,7 @@ contract getInvestorProposal is ERC20, Test {
     // External Functions //
     ////////////////////////////
 
-    function getProposals(
-        uint256 _interestRate
-    ) external payable {
+    function getProposals(uint256 _interestRate) external payable {
         require(
             msg.value > 0 &&
                 msg.value <= details.askingPrice &&
@@ -265,9 +264,8 @@ contract getInvestorProposal is ERC20, Test {
     function transferFunds() public payable returns (bool) {
         // use output of calculateEMI
         require(setForEMI == true, "Contract is not set to give EMI Now");
-        //require(EMILeft > 0, "NO EMI IS LEFT");
+        require(EMIsPaid <= details.borrowDuration, "NO EMI IS LEFT");
         console.log("msg.value is", msg.value);
-        
 
         uint totalSupplyDebtToken = totalSupply();
 
@@ -277,8 +275,8 @@ contract getInvestorProposal is ERC20, Test {
                 acceptedProposalArray[i].amount,
                 acceptedProposalArray[i].interestRate
             );
-          //  console.log("investor now is", acceptedProposalArray[i].investor);
-            uint _toPay = (_tokenBal* EMIToPay )/ totalSupplyDebtToken;
+            //  console.log("investor now is", acceptedProposalArray[i].investor);
+            uint _toPay = (_tokenBal * EMIToPay) / totalSupplyDebtToken;
             console.log("_toPay amount is", _toPay);
             (bool sent, ) = acceptedProposalArray[i].investor.call{
                 value: _toPay
@@ -287,7 +285,43 @@ contract getInvestorProposal is ERC20, Test {
             if (sent) EMIsPaid += 1;
         }
         nextEpochToPay += thirtyDayEpoch;
+        EMIPaidTimestamps[EMIsPaid] = block.timestamp;
         return true;
+    }
+
+    /*
+     * @param principal: principal amount given by the investor to borrower
+     * @param interestRate: interestRate proided by the investor
+     * @notice The function returns EMI of next installment
+     * - For example if you want to pay EMI on time, i.e.  inside 30 days + 5 days of cushion
+     *   your EMI would be of 30 days and no penalty
+     * - If you want to pay EMI late, you have to pay penalty on EMI, which is calculated per day elapsed
+     */
+
+    function returnEMI(
+        uint principal,
+        uint interestRate
+    ) public view returns (uint) {
+        if (block.timestamp < nextEpochToPay + 5 days) {
+            return calcEMI(principal, interestRate);
+        } else {
+            uint daysElapsed = (block.timestamp - nextEpochToPay) / 86400;
+            return
+                calcEMI(principal, interestRate) +
+                ((daysElapsed * penalty) * calcEMI(principal, interestRate)) /
+                100;
+        }
+    }
+
+    /*
+     * @notice the function provides timestamps of next EMI to be paid by borrower
+     * @output nextEpochToPay: it is 30 days
+     * @output nextEpochToPay + 5 days is the cusion of which user has to finally pay EMI
+     * else penalty would be imposed
+     */
+
+    function nextEMITimestampToBePaid() public view returns (uint, uint) {
+        return (nextEpochToPay, nextEpochToPay + 5 days);
     }
 
     ////////////////////////////
@@ -303,27 +337,12 @@ contract getInvestorProposal is ERC20, Test {
     function calcEMI(
         uint principal,
         uint interestRate
-        
-    ) internal view  returns (uint) {
+    ) internal view returns (uint) {
         //@dev note that time is in months and calculation is done via simple interest
-        uint EMI = ((principal + (principal * interestRate * details.borrowDuration) / 1200) / 12)*2;
+        uint EMI = ((principal +
+            (principal * interestRate * details.borrowDuration) /
+            1200) / 12) * 2;
         console.log("EMI IS", EMI);
         return EMI;
-    }
-
-    function returnEMI(
-        uint principal,
-        uint interestRate
-    ) public view returns (uint) {
-        if (block.timestamp < nextEpochToPay) {
-            return calcEMI(principal, interestRate);
-        } else {
-            uint daysElapsed = (block.timestamp - nextEpochToPay) / 86400;
-            return
-                calcEMI(principal, interestRate) +
-                ((daysElapsed * penalty) *
-                    calcEMI(principal, interestRate)) /
-                100;
-        }
     }
 }
