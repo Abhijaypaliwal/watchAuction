@@ -65,6 +65,18 @@ contract auctionTest is Test {
         console.log(msg.sender.balance);
         console.log(address(2).balance);
         console.log(address(3).balance);
+
+        // @dev testcade for penalty of 5 days
+        vm.warp(1697231200 + 40 days);
+        console.log("address 1 balance before", msg.sender.balance);
+        console.log("address 2 balance before", address(2).balance);
+        console.log("address 3 balance before", address(3).balance);
+        getInvestorProposal(getInvestorProposalAddr).transferFunds{
+            value: 500000000000000000
+        }();
+        console.log("address 1 balance after", msg.sender.balance);
+        console.log("address 2 balance after", address(2).balance);
+        console.log("address 3 balance after", address(3).balance);
         vm.stopPrank();
     }
 

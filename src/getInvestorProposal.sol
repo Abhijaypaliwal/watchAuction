@@ -3,8 +3,6 @@
 pragma solidity ^0.8.16;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {AuctionWatch} from "./watchAuction.sol";
-//import {getEMI} from "./getEMI.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 /**
@@ -27,19 +25,25 @@ import {Test, console} from "forge-std/Test.sol";
  * The investor would recieve ERC20 Tokens when their proposal is accepted, these tokens would be used to take EMI from borrower
  *
  * @notice there is no role of admin here, the scope lies between borrower and investors
- * @notice the debt token equalts to wei, i.e. 1 debt token = 1 wei
+ * @notice the debt token equals to wei, i.e. 1 debt token = 1 wei
  */
+
+interface watchAuction {
+    function setAuctionOff(uint _itemNumber) external returns (bool);
+}
 
 contract getInvestorProposal is ERC20, Test {
     uint256 public _remainingAmount;
     uint EMIsPaid; // months of EMI borrower had paid
-    uint penalty; // penalty paid by borrower for late payment, in % per day
+    uint penalty = 1; // penalty paid by borrower for late payment, in % per day
     uint public constant thirtyDayEpoch = 2629743; //number of seconds in thirty days
     uint public nextEpochToPay; // next timestamp to pay for borrower
     bool public setForEMI;
     uint256 public proposalNum;
-
+    address watchAuctionContract;
+    
     struct itemDetails {
+        uint itemNumber;
         string itemName;
         uint256 itemPrice;
         uint256 askingPrice;
@@ -68,6 +72,7 @@ contract getInvestorProposal is ERC20, Test {
 
     itemDetails public details;
     proposalDetails detailsProposer;
+    watchAuction auctionContract = watchAuction(watchAuctionContract);
     mapping(uint256 => uint256) public EMIPaidTimestamps;
     mapping(uint256 => proposalDetails) public proposalMapping;
     proposalDetails[] public acceptedProposalArray;
@@ -77,6 +82,7 @@ contract getInvestorProposal is ERC20, Test {
     ////////////////////
 
     constructor(
+        uint _itemNumber,
         string memory _itemName,
         uint256 _itemPrice,
         uint256 _askingPrice,
@@ -86,6 +92,7 @@ contract getInvestorProposal is ERC20, Test {
         address _borrower,
         uint256 _auctionDuration
     ) ERC20("WATCH_AUCTION_DEBT_TOKEN", "WATCH_DEBT") {
+        details.itemNumber = _itemNumber;
         details.itemName = _itemName;
         details.itemPrice = _itemPrice;
         details.askingPrice = _askingPrice;
@@ -93,7 +100,7 @@ contract getInvestorProposal is ERC20, Test {
         details.onAuction = onAuction;
         details.borrower = _borrower;
         details.borrowDuration = _borrowDuration;
-        EMIsPaid = _borrowDuration;
+        EMIsPaid = 0;
         _remainingAmount = details.askingPrice;
         details.auctionDuration = _auctionDuration;
     }
@@ -155,6 +162,7 @@ contract getInvestorProposal is ERC20, Test {
         if (_remainingAmount == 0) {
             nextEpochToPay = 2629743 + block.timestamp;
             setForEMI = true;
+            auctionContract.setAuctionOff(details.itemNumber);
         }
         return true;
     }
@@ -265,6 +273,7 @@ contract getInvestorProposal is ERC20, Test {
         // use output of calculateEMI
         require(setForEMI == true, "Contract is not set to give EMI Now");
         require(EMIsPaid <= details.borrowDuration, "NO EMI IS LEFT");
+        console.log("emipaid", EMIsPaid);
         console.log("msg.value is", msg.value);
 
         uint totalSupplyDebtToken = totalSupply();
@@ -275,15 +284,16 @@ contract getInvestorProposal is ERC20, Test {
                 acceptedProposalArray[i].amount,
                 acceptedProposalArray[i].interestRate
             );
+
             //  console.log("investor now is", acceptedProposalArray[i].investor);
             uint _toPay = (_tokenBal * EMIToPay) / totalSupplyDebtToken;
-            console.log("_toPay amount is", _toPay);
+
             (bool sent, ) = acceptedProposalArray[i].investor.call{
                 value: _toPay
             }("");
             require(sent, "Failed to send Ether");
-            if (sent) EMIsPaid += 1;
         }
+        EMIsPaid += 1;
         nextEpochToPay += thirtyDayEpoch;
         EMIPaidTimestamps[EMIsPaid] = block.timestamp;
         return true;
@@ -305,11 +315,19 @@ contract getInvestorProposal is ERC20, Test {
         if (block.timestamp < nextEpochToPay + 5 days) {
             return calcEMI(principal, interestRate);
         } else {
-            uint daysElapsed = (block.timestamp - nextEpochToPay) / 86400;
+            uint daysElapsed = (block.timestamp - (nextEpochToPay + 5 days)) /
+                86400;
+            console.log(daysElapsed);
+
+            console.log(
+                "hello",
+                (((daysElapsed * penalty) * calcEMI(principal, interestRate)) /
+                    100)
+            );
             return
                 calcEMI(principal, interestRate) +
-                ((daysElapsed * penalty) * calcEMI(principal, interestRate)) /
-                100;
+                (((daysElapsed * penalty) * calcEMI(principal, interestRate)) /
+                    100);
         }
     }
 
@@ -342,7 +360,7 @@ contract getInvestorProposal is ERC20, Test {
         uint EMI = ((principal +
             (principal * interestRate * details.borrowDuration) /
             1200) / 12) * 2;
-        console.log("EMI IS", EMI);
+
         return EMI;
     }
 }

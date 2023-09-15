@@ -23,6 +23,7 @@ import {Test, console} from "forge-std/Test.sol";
 
 contract AuctionWatch is ERC721 {
     struct itemDetails {
+        uint itemNumber;
         string itemName;
         uint256 itemPrice;
         uint256 askingPrice;
@@ -31,7 +32,7 @@ contract AuctionWatch is ERC721 {
         bool onAuction;
         address borrower;
         uint256 auctionDuration;
-        
+        address investorProposalContract;
     }
 
     //////////////////
@@ -84,6 +85,7 @@ contract AuctionWatch is ERC721 {
         uint256 _auctionDuration
     ) external onlyOwner returns (address) {
         itemNumber++;
+        details.itemNumber = itemNumber;
         details.itemName = _itemName;
         details.itemPrice = _itemPrice;
         details.askingPrice = _askingPrice;
@@ -93,9 +95,9 @@ contract AuctionWatch is ERC721 {
         details.borrowDuration = _borrowDuration;
         details.auctionDuration = _auctionDuration;
         mintNFT(msg.sender, itemNumber);
-        itemNumberToDetails[itemNumber] = details;
 
         getInvestorProposal getProposal = new getInvestorProposal(
+            itemNumber,
             _itemName,
             _itemPrice,
             _askingPrice,
@@ -105,7 +107,18 @@ contract AuctionWatch is ERC721 {
             _borrower,
             _auctionDuration
         );
+        details.investorProposalContract = address(getProposal);
+        itemNumberToDetails[itemNumber] = details;
 
         return address(getProposal);
+    }
+
+    function setAuctionOff(uint _itemNumber) external returns (bool) {
+        require(
+            msg.sender ==
+                itemNumberToDetails[_itemNumber].investorProposalContract,
+            "not caled by contract having itemnumber given"
+        );
+        itemNumberToDetails[_itemNumber].onAuction = false;
     }
 }
