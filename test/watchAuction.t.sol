@@ -7,20 +7,19 @@ import "../src/watchAuction.sol";
 
 contract auctionTest is Test {
     AuctionWatch auctionContract;
-    //getEMI emi;
 
     function setUp() external {
         vm.prank(address(1));
         auctionContract = new AuctionWatch();
-       // emi = new getEMI(10000,12,2,address(1));
     }
 
     function testAuction() external {
         vm.startPrank(address(1));
         address getInvestorProposalAddr = auctionContract.setItemForAuction(
             "Rolex Watch",
-            10000000000000000,
-            10000000000000000,
+            1000000000000000000,
+            1000000000000000000,
+            12,
             true,
             address(1),
             1694601478
@@ -30,29 +29,43 @@ contract auctionTest is Test {
         vm.warp(1694601477);
         vm.deal(address(1), 100 ether);
         getInvestorProposal(payable(getInvestorProposalAddr)).getProposals{
-            value: 10000000000000000
-        }(6, 6);
+            value: 1000000000000000000
+        }(6);
         vm.stopPrank();
         vm.deal(address(2), 100 ether);
         vm.prank(address(2));
         getInvestorProposal(payable(getInvestorProposalAddr)).getProposals{
-            value: 10000000000000000
-        }(4, 6);
+            value: 500000000000000000
+        }(10);
         vm.deal(address(3), 100 ether);
         vm.prank(address(3));
         getInvestorProposal(payable(getInvestorProposalAddr)).getProposals{
-            value: 10000000000000000
-        }(4, 12);
+            value: 500000000000000000
+        }(10);
 
         vm.warp(1694601479);
         vm.prank(address(1));
         getInvestorProposal(getInvestorProposalAddr).approveProposal(3);
         vm.prank(address(1));
+        getInvestorProposal(getInvestorProposalAddr).approveProposal(2);
+        vm.prank(address(1));
         getInvestorProposal(getInvestorProposalAddr).borrowerClaimFunds(3);
         vm.prank(address(2));
-        getInvestorProposal(getInvestorProposalAddr).withdrawFunds(2);
+        getInvestorProposal(getInvestorProposalAddr).investorClaimDebtToken(2);
         vm.prank(address(3));
         getInvestorProposal(getInvestorProposalAddr).investorClaimDebtToken(3);
+        vm.warp(1697231200);
+        vm.startPrank(address(1));
+        console.log(msg.sender.balance);
+        console.log(address(2).balance);
+        console.log(address(3).balance);
+        getInvestorProposal(getInvestorProposalAddr).transferFunds{
+            value: 500000000000000000
+        }();
+        console.log(msg.sender.balance);
+        console.log(address(2).balance);
+        console.log(address(3).balance);
+        vm.stopPrank();
     }
 
     // function testEMI() external {

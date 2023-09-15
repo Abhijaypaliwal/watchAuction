@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {AuctionWatch} from "./watchAuction.sol";
-import {getEMI} from "./getEMI.sol";
+//import {getEMI} from "./getEMI.sol";
 import {Test, console} from "forge-std/Test.sol";
 
 /**
@@ -32,15 +32,18 @@ import {Test, console} from "forge-std/Test.sol";
 
 contract getInvestorProposal is ERC20, Test {
     uint256 public _remainingAmount;
-    uint EMILeft; // months of EMI to be paid
+    uint EMIsPaid; // months of EMI borrower had paid
     uint penalty; // penalty paid by borrower for late payment, in % per day
     uint public constant thirtyDayEpoch = 2629743; //number of seconds in thirty days
-    uint public nextEpochToPay = 2629743 + block.timestamp; // next timestamp to pay for borrower
+    uint public nextEpochToPay; // next timestamp to pay for borrower
+    bool public setForEMI;
+    
 
     struct itemDetails {
         string itemName;
         uint256 itemPrice;
         uint256 askingPrice;
+        uint256 borrowDuration;
         bool isApproved;
         bool onAuction;
         address borrower;
@@ -50,7 +53,6 @@ contract getInvestorProposal is ERC20, Test {
     struct proposalDetails {
         uint256 amount;
         uint256 interestRate;
-        uint256 duration;
         address investor;
         bool approved;
         bool claimed;
@@ -78,6 +80,7 @@ contract getInvestorProposal is ERC20, Test {
         string memory _itemName,
         uint256 _itemPrice,
         uint256 _askingPrice,
+        uint256 _borrowDuration,
         bool _isApproved,
         bool onAuction,
         address _borrower,
@@ -89,6 +92,7 @@ contract getInvestorProposal is ERC20, Test {
         details.isApproved = _isApproved;
         details.onAuction = onAuction;
         details.borrower = _borrower;
+        details.borrowDuration = _borrowDuration;
         _remainingAmount = details.askingPrice;
         details.auctionDuration = _auctionDuration;
     }
@@ -105,7 +109,6 @@ contract getInvestorProposal is ERC20, Test {
 
     /*
      * @param _interestRate: interest rate payable per year
-     * @param _duration: duration of loan in months
      */
 
     ////////////////////////////
@@ -113,20 +116,17 @@ contract getInvestorProposal is ERC20, Test {
     ////////////////////////////
 
     function getProposals(
-        uint256 _interestRate,
-        uint256 _duration
+        uint256 _interestRate
     ) external payable {
         require(
             msg.value > 0 &&
                 msg.value <= details.askingPrice &&
                 _interestRate > 0 &&
-                _duration > 0 &&
                 block.timestamp < details.auctionDuration,
             "either of the details are incorrect or auction is expired"
         );
         detailsProposer.amount = msg.value;
         detailsProposer.interestRate = _interestRate;
-        detailsProposer.duration = _duration;
         detailsProposer.investor = msg.sender;
         detailsProposer.approved = false;
         detailsProposer.claimed = false;
@@ -153,9 +153,10 @@ contract getInvestorProposal is ERC20, Test {
         _remainingAmount -= proposalMapping[_proposalNum].amount;
         acceptedProposalArray.push(proposalMapping[_proposalNum]);
 
-        // if (_remainingAmount == 0) {
-        //     mintEMIContract();
-        // }
+        if (_remainingAmount == 0) {
+            nextEpochToPay = 2629743 + block.timestamp;
+            setForEMI = true;
+        }
         return true;
     }
 
@@ -171,7 +172,7 @@ contract getInvestorProposal is ERC20, Test {
      * @param _proposalNum: proposalNum of investor who is claiming ETH
      * @notice The function can only be called by the investor who has submitted
      * his offer and had got proposalNum
-     * @param The function can only be called when auction gets over and borrower approves
+     * @notice The function can only be called when auction gets over and borrower approves
      * amount of proposals which equat to its asking amount (_remainingAmount)
      */
 
@@ -210,7 +211,7 @@ contract getInvestorProposal is ERC20, Test {
      * @param _proposalNum: proposalNum of investor which borrower has approved
      * @notice The function can only be called by the borrower
      * @notice borrower can claim ETH after auction is ended and proposal approves
-     * amount of proposals which equat to its asking amount (_remainingAmount)
+     * amount of proposals which equal to its asking amount (_remainingAmount)
      */
 
     function borrowerClaimFunds(
@@ -259,32 +260,37 @@ contract getInvestorProposal is ERC20, Test {
         mintToken(msg.sender, proposalMapping[_proposalNum].amount);
         return true;
     }
-    
 
     // @dev note that transfer function is build to support ETH currently
     function transferFunds() public payable returns (bool) {
         // use output of calculateEMI
-        //require(msg.value == calcEMI(), "EMI AND MSG.VALUE DOES NOT MATCH");
-        require(EMILeft > 0, "NO EMI IS LEFT");
-        //uint EMIToPay;
+        require(setForEMI == true, "Contract is not set to give EMI Now");
+        //require(EMILeft > 0, "NO EMI IS LEFT");
+        console.log("msg.value is", msg.value);
+        
 
         uint totalSupplyDebtToken = totalSupply();
 
-        for (uint i = 0; i <= acceptedProposalArray.length; i++) {
+        for (uint i = 0; i < acceptedProposalArray.length; i++) {
             uint _tokenBal = balanceOf(acceptedProposalArray[i].investor);
-            uint EMIToPay = returnEMI(acceptedProposalArray[i].amount, acceptedProposalArray[i].interestRate, acceptedProposalArray[i].duration);
-            uint _toPay = (_tokenBal / totalSupplyDebtToken) * EMIToPay;
+            uint EMIToPay = returnEMI(
+                acceptedProposalArray[i].amount,
+                acceptedProposalArray[i].interestRate
+            );
+          //  console.log("investor now is", acceptedProposalArray[i].investor);
+            uint _toPay = (_tokenBal* EMIToPay )/ totalSupplyDebtToken;
+            console.log("_toPay amount is", _toPay);
             (bool sent, ) = acceptedProposalArray[i].investor.call{
                 value: _toPay
             }("");
             require(sent, "Failed to send Ether");
-            if (sent) EMILeft -= 1;
+            if (sent) EMIsPaid += 1;
         }
         nextEpochToPay += thirtyDayEpoch;
         return true;
     }
 
-     ////////////////////////////
+    ////////////////////////////
     // Internal Functions //
     ////////////////////////////
 
@@ -296,31 +302,28 @@ contract getInvestorProposal is ERC20, Test {
     */
     function calcEMI(
         uint principal,
-        uint interestRate,
-        uint time
-    ) internal view returns (uint) {
+        uint interestRate
+        
+    ) internal view  returns (uint) {
         //@dev note that time is in months and calculation is done via simple interest
-        uint EMI = (principal + (principal * interestRate * time) / 1200) / 12;
+        uint EMI = ((principal + (principal * interestRate * details.borrowDuration) / 1200) / 12)*2;
+        console.log("EMI IS", EMI);
         return EMI;
     }
 
-
     function returnEMI(
         uint principal,
-        uint interestRate,
-        uint time
-    ) internal returns (uint) {
+        uint interestRate
+    ) public view returns (uint) {
         if (block.timestamp < nextEpochToPay) {
-            return calcEMI(principal, interestRate, time);
+            return calcEMI(principal, interestRate);
         } else {
             uint daysElapsed = (block.timestamp - nextEpochToPay) / 86400;
             return
-                calcEMI(principal, interestRate, time) +
+                calcEMI(principal, interestRate) +
                 ((daysElapsed * penalty) *
-                    calcEMI(principal, interestRate, time)) /
+                    calcEMI(principal, interestRate)) /
                 100;
         }
     }
-
-    
 }

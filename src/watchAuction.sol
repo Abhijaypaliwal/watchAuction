@@ -26,10 +26,12 @@ contract AuctionWatch is ERC721 {
         string itemName;
         uint256 itemPrice;
         uint256 askingPrice;
+        uint256 borrowDuration;
         bool isApproved;
         bool onAuction;
         address borrower;
         uint256 auctionDuration;
+        
     }
 
     //////////////////
@@ -76,6 +78,7 @@ contract AuctionWatch is ERC721 {
         string memory _itemName,
         uint256 _itemPrice,
         uint256 _askingPrice,
+        uint256 _borrowDuration,
         bool _isApproved,
         address _borrower,
         uint256 _auctionDuration
@@ -87,6 +90,7 @@ contract AuctionWatch is ERC721 {
         details.isApproved = _isApproved;
         details.onAuction = true;
         details.borrower = _borrower;
+        details.borrowDuration = _borrowDuration;
         details.auctionDuration = _auctionDuration;
         mintNFT(msg.sender, itemNumber);
         itemNumberToDetails[itemNumber] = details;
@@ -95,6 +99,7 @@ contract AuctionWatch is ERC721 {
             _itemName,
             _itemPrice,
             _askingPrice,
+            _borrowDuration,
             _isApproved,
             true,
             _borrower,
