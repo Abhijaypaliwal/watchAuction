@@ -29,9 +29,13 @@ import {Test, console} from "forge-std/Test.sol";
  * @notice there is no role of admin here, the scope lies between borrower and investors
  * @notice the debt token equalts to wei, i.e. 1 debt token = 1 wei
  */
- 
+
 contract getInvestorProposal is ERC20, Test {
     uint256 public _remainingAmount;
+    uint EMILeft; // months of EMI to be paid
+    uint penalty; // penalty paid by borrower for late payment, in % per day
+    uint public constant thirtyDayEpoch = 2629743; //number of seconds in thirty days
+    uint public nextEpochToPay = 2629743 + block.timestamp; // next timestamp to pay for borrower
 
     struct itemDetails {
         string itemName;
@@ -149,19 +153,19 @@ contract getInvestorProposal is ERC20, Test {
         _remainingAmount -= proposalMapping[_proposalNum].amount;
         acceptedProposalArray.push(proposalMapping[_proposalNum]);
 
-        if (_remainingAmount == 0) {
-            mintEMIContract();
-        }
+        // if (_remainingAmount == 0) {
+        //     mintEMIContract();
+        // }
         return true;
     }
 
-    function mintEMIContract() internal returns (address) {
-        proposalDetails[] memory z;
-        z = acceptedProposalArray;
-        getEMI EMIContract = new getEMI();
-        EMIContract.hellow(z, address(this), details.borrower);
-        return address(EMIContract);
-    }
+    // function mintEMIContract() internal returns (address) {
+    //     proposalDetails[] memory z;
+    //     z = acceptedProposalArray;
+    //     getEMI EMIContract = new getEMI();
+    //     EMIContract.hellow(z, address(this), details.borrower);
+    //     return address(EMIContract);
+    // }
 
     /*
      * @param _proposalNum: proposalNum of investor who is claiming ETH
@@ -255,4 +259,68 @@ contract getInvestorProposal is ERC20, Test {
         mintToken(msg.sender, proposalMapping[_proposalNum].amount);
         return true;
     }
+    
+
+    // @dev note that transfer function is build to support ETH currently
+    function transferFunds() public payable returns (bool) {
+        // use output of calculateEMI
+        //require(msg.value == calcEMI(), "EMI AND MSG.VALUE DOES NOT MATCH");
+        require(EMILeft > 0, "NO EMI IS LEFT");
+        //uint EMIToPay;
+
+        uint totalSupplyDebtToken = totalSupply();
+
+        for (uint i = 0; i <= acceptedProposalArray.length; i++) {
+            uint _tokenBal = balanceOf(acceptedProposalArray[i].investor);
+            uint EMIToPay = returnEMI(acceptedProposalArray[i].amount, acceptedProposalArray[i].interestRate, acceptedProposalArray[i].duration);
+            uint _toPay = (_tokenBal / totalSupplyDebtToken) * EMIToPay;
+            (bool sent, ) = acceptedProposalArray[i].investor.call{
+                value: _toPay
+            }("");
+            require(sent, "Failed to send Ether");
+            if (sent) EMILeft -= 1;
+        }
+        nextEpochToPay += thirtyDayEpoch;
+        return true;
+    }
+
+     ////////////////////////////
+    // Internal Functions //
+    ////////////////////////////
+
+    /*
+     * @param principal: principal amount of the borrowing funds
+     * @param interestRate: interest rate in % offered by investor
+     * @param time: Time of EMI in months
+
+    */
+    function calcEMI(
+        uint principal,
+        uint interestRate,
+        uint time
+    ) internal view returns (uint) {
+        //@dev note that time is in months and calculation is done via simple interest
+        uint EMI = (principal + (principal * interestRate * time) / 1200) / 12;
+        return EMI;
+    }
+
+
+    function returnEMI(
+        uint principal,
+        uint interestRate,
+        uint time
+    ) internal returns (uint) {
+        if (block.timestamp < nextEpochToPay) {
+            return calcEMI(principal, interestRate, time);
+        } else {
+            uint daysElapsed = (block.timestamp - nextEpochToPay) / 86400;
+            return
+                calcEMI(principal, interestRate, time) +
+                ((daysElapsed * penalty) *
+                    calcEMI(principal, interestRate, time)) /
+                100;
+        }
+    }
+
+    
 }
